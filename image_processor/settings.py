@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 
-
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -28,7 +27,6 @@ SECRET_KEY = 'django-insecure-raedp-jx0df=obwo*o+845_6l0g-cn9^svr+2kmf6qh4b8l487
 DEBUG = False
 
 ALLOWED_HOSTS = ['*']
-
 
 # Application definition
 

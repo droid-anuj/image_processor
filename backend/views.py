@@ -6,7 +6,7 @@ from rest_framework import status
 from .models import ProcessingRequest , Product
 from django_q.tasks import async_task
 from .tasks import process_csv_task
-
+from .serializers import ProductSerializer
 # Configure logger
 logger = logging.getLogger(__name__)
 
@@ -72,9 +72,21 @@ class StatusAPIView(APIView):
             proc_request = ProcessingRequest.objects.get(id=request_id)
         except ProcessingRequest.DoesNotExist:
             return Response({'error': 'Invalid request ID'}, status=status.HTTP_404_NOT_FOUND)
-        
         return Response({'request_id': str(proc_request.id), 'status': proc_request.status})
 
+class ProductsByRequestAPIView(APIView):
+    def get(self, request, request_id):
+        try:
+            proc_request = ProcessingRequest.objects.get(id=request_id)
+            products = Product.objects.filter(processing_request=proc_request)
+
+            # Serialize the data
+            serializer = ProductSerializer(products, many=True)
+            return Response({'request_id': request_id, 'products': serializer.data}, status=status.HTTP_200_OK)
+
+        except ProcessingRequest.DoesNotExist:
+            return Response({'error': 'Invalid request ID'}, status=status.HTTP_404_NOT_FOUND)
+        
 class WebhookAPIView(APIView):
     def post(self, request):
         # Process incoming webhook data (e.g., log the callback, update status, etc.)
