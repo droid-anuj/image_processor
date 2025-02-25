@@ -1,39 +1,71 @@
 import csv, io
+import logging
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import ProcessingRequest
+from .models import ProcessingRequest , Product
 from django_q.tasks import async_task
 from .tasks import process_csv_task
 
+# Configure logger
+logger = logging.getLogger(__name__)
+
 class UploadAPIView(APIView):
     def post(self, request):
+        logger.info("Received a new file upload request.")
+
         file_obj = request.FILES.get('file')
         if not file_obj:
+            logger.error("No CSV file provided in the request.")
             return Response({'error': 'CSV file is required.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         try:
+            # Read and decode the uploaded CSV file
             decoded_file = file_obj.read().decode('utf-8')
             io_string = io.StringIO(decoded_file)
             csv_reader = csv.reader(io_string, delimiter=',')
-            header = next(csv_reader)
-            expected_header = ['S. No.', 'Product Name', 'Input Image Urls']
-            alternate_header = ['Serial Number', 'Product Name', 'Input Image Urls']
-            if header != expected_header and header != alternate_header:
-                return Response({'error': 'CSV header does not match expected format.'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
-        except Exception:
-            return Response({'error': 'Invalid CSV file.'}, status=status.HTTP_400_BAD_REQUEST)
-        # Create processing request record
-        processing_request = ProcessingRequest.objects.create(csv_file=file_obj, status='Pending')
+
+            # Validate CSV header
+            header = next(csv_reader, None)
+            expected_header = ['Serial Number', 'Product Name', 'Input Image Urls']
+            alternate_header = ['S. No.', 'Product Name', 'Input Image Urls']
+
+            if header not in [expected_header, alternate_header]:
+                logger.error(f"Invalid CSV header: {header}")
+                return Response({
+                    'error': 'CSV header does not match expected format. First column should be "Serial Number" or "S. No."'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Create a new Processing Request
+            processing_request = ProcessingRequest.objects.create(status='Pending')
+            logger.info(f"Created ProcessingRequest with ID: {processing_request.id}")
+
+            # Store each row as a Product entry
+            for row in csv_reader:
+                try:
+                    serial, product_name, input_image_urls = row[0], row[1], row[2]
+                    product = Product.objects.create(
+                        processing_request=processing_request,
+                        serial_number=int(serial),
+                        product_name=product_name,
+                        input_image_urls=input_image_urls
+                    )
+                    logger.info(f"Stored product: {product_name} (Serial: {serial})")
+                except Exception as row_error:
+                    logger.error(f"Error processing row {row}: {row_error}")
+                    continue
+
+            # Start background processing
+            process_csv_task(str(processing_request.id))
+            logger.info(f"Processing task started for request ID: {processing_request.id}")
+
+            return Response({'request_id': str(processing_request.id)}, status=status.HTTP_202_ACCEPTED)
+
+        except Exception as e:
+            logger.exception(f"Unexpected error during file processing: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Trigger asynchronous task using Django-Q
-        async_task(process_csv_task, str(processing_request.id))
-        return Response({
-            'request_id': str(processing_request.id),
-            'message': f'Upload successful. Check status at: api/status/{processing_request.id}'
-        }, status=status.HTTP_202_ACCEPTED)
-    
+        
 class StatusAPIView(APIView):
     def get(self, request, request_id):
         try:

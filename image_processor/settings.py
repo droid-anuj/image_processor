@@ -10,7 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
-ALLOWED_HOSTS = ['image-processor-yrql.onrender.com', '127.0.0.1', 'localhost']
+
 
 from pathlib import Path
 
@@ -25,9 +25,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-raedp-jx0df=obwo*o+845_6l0g-cn9^svr+2kmf6qh4b8l487'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
