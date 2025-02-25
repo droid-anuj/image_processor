@@ -11,7 +11,7 @@ Content-Type: multipart/form-data
 Body Parameters:
 file (CSV File) → Upload the CSV file containing product and image URLs.
 🔹 Example Request (cURL):
-curl -X POST "https://your-app.onrender.com/api/upload/" \
+curl -X POST "https://image-processor-yrql.onrender.com/api/upload/" \
   -F "file=@sample.csv"
 
 🔹 Response:
