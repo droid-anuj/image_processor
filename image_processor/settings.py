@@ -10,11 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
-ALLOWED_HOSTS = [
-    "image-processor-yrql.onrender.com",  # Your Render domain
-    "127.0.0.1",  # Allow local development
-    "localhost",   # Allow local development
-]
+ALLOWED_HOSTS = ['image-processor-yrql.onrender.com', '127.0.0.1', 'localhost']
 
 from pathlib import Path
 
